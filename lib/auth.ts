@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET_KEY || process.env.JWT_SECRET || 'your-secret-key';
 
 export async function getCurrentUser() {
     const cookieStore = await cookies();
