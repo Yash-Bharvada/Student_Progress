@@ -134,8 +134,11 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
   const [user, setUser] = React.useState<any>(null)
+  const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
+    setMounted(true)
+
     const fetchUser = async () => {
       try {
         const response = await fetch('/api/user')
@@ -187,6 +190,8 @@ export function AppSidebar() {
               <SidebarMenu className="space-y-1">
                 {navigation
                   .filter((item: any) => {
+                    if (!mounted) return false
+
                     // Admin specific filtering: Remove everything except Admin, Settings, and Mentors
                     if (user?.role === 'admin') {
                       return ['Admin', 'Mentors', 'Settings'].includes(item.name);
@@ -268,14 +273,14 @@ export function AppSidebar() {
               >
                 <div className="relative">
                   <Avatar className="h-8 w-8 border border-border/50">
-                    <AvatarImage src={user?.avatar} alt={user?.name || user?.username || "User"} />
+                    <AvatarImage src={mounted ? user?.avatar : undefined} alt={mounted ? (user?.name || user?.username || "User") : "User"} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs">
-                      {user?.name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                      {mounted ? (user?.name?.charAt(0) || user?.username?.charAt(0) || 'U') : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
                 </div>
-                {!isCollapsed && (
+                {!isCollapsed && mounted && (
                   <div className="flex flex-col items-start text-left">
                     <span className="text-sm font-medium text-foreground">
                       {user?.name || user?.username || 'Loading...'}
