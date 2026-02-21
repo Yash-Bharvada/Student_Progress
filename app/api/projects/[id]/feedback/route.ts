@@ -5,18 +5,19 @@ import { FeedbackModel } from '@/lib/models/Feedback';
 import dbConnect from '@/lib/mongodb';
 
 interface Params {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 export async function GET(request: NextRequest, { params }: Params) {
+    const { id } = await params;
     try {
         await dbConnect();
         const user = await getCurrentUser();
         if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-        const feedback = await FeedbackModel.find({ projectId: params.id })
+        const feedback = await FeedbackModel.find({ projectId: id })
             .populate('mentorId', 'name avatar')
             .sort({ createdAt: -1 });
 
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+    const { id } = await params;
     try {
         await dbConnect();
         const user = await getCurrentUser();
         if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-        const project = await ProjectModel.findById(params.id);
+        const project = await ProjectModel.findById(id);
         if (!project) return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
 
         // Role: Mentor Only (and must be THE mentor?)
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         const body = await request.json();
 
         const feedback = await FeedbackModel.create({
-            projectId: params.id,
+            projectId: id,
             mentorId: user._id,
             studentId: project.createdBy, // Default to creator, or maybe handle generic project feedback
             type: body.type || 'comment',

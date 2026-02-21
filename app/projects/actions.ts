@@ -117,16 +117,35 @@ export async function updateProjectGithubUrl(projectId: string, githubUrl: strin
             projectId,
             { githubUrl },
             { new: true }
-        ).lean();
+        ).populate('createdBy', 'name avatar email').lean();
 
         if (!project) {
             return { success: false, error: 'Project not found' };
         }
 
+        // Serialize
+        const plainProject = {
+            ...project,
+            _id: project._id.toString(),
+            teamMembers: project.teamMembers?.map((id: any) => id.toString()) || [],
+            mentorId: project.mentorId?.toString() || null,
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                avatar: (project.createdBy as any).avatar,
+                email: (project.createdBy as any).email
+            } : (project.createdBy as any)?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
+        };
+
         revalidatePath('/projects');
         revalidatePath(`/projects/${projectId}`);
 
-        return { success: true, project: { ...project, _id: project._id.toString() } };
+        return { success: true, project: plainProject };
 
     } catch (error: any) {
         console.error('Error updating GitHub URL:', error);
@@ -203,7 +222,7 @@ export async function addTeamMember(projectId: string, userEmail: string) {
             projectId,
             { $addToSet: { teamMembers: userToAdd._id } }, // $addToSet prevents duplicates
             { new: true }
-        ).populate('teamMembers', 'name email avatar').lean();
+        ).populate('teamMembers', 'name email avatar').populate('createdBy', 'name avatar email').lean();
 
         if (!project) {
             return { success: false, error: 'Project not found' };
@@ -218,7 +237,19 @@ export async function addTeamMember(projectId: string, userEmail: string) {
                 name: m.name,
                 email: m.email,
                 avatar: m.avatar
-            })) || []
+            })) || [],
+            mentorId: project.mentorId?.toString() || null,
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                avatar: (project.createdBy as any).avatar,
+                email: (project.createdBy as any).email
+            } : (project.createdBy as any)?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
         };
 
         revalidatePath('/projects');
@@ -241,12 +272,22 @@ export async function removeTeamMember(projectId: string, userId: string) {
             return { success: false, error: 'Not authenticated' };
         }
 
+        // Check if removing creator
+        const existingProject = await ProjectModel.findById(projectId);
+        if (!existingProject) {
+            return { success: false, error: 'Project not found' };
+        }
+
+        if (existingProject.createdBy.toString() === userId) {
+            return { success: false, error: 'The project creator cannot be removed from the team.' };
+        }
+
         // Update project
         const project = await ProjectModel.findByIdAndUpdate(
             projectId,
             { $pull: { teamMembers: userId } },
             { new: true }
-        ).populate('teamMembers', 'name email avatar').lean();
+        ).populate('teamMembers', 'name email avatar').populate('createdBy', 'name avatar email').lean();
 
         if (!project) {
             return { success: false, error: 'Project not found' };
@@ -261,7 +302,19 @@ export async function removeTeamMember(projectId: string, userId: string) {
                 name: m.name,
                 email: m.email,
                 avatar: m.avatar
-            })) || []
+            })) || [],
+            mentorId: project.mentorId?.toString() || null,
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                avatar: (project.createdBy as any).avatar,
+                email: (project.createdBy as any).email
+            } : (project.createdBy as any)?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
         };
 
         revalidatePath('/projects');
@@ -284,16 +337,46 @@ export async function getProjectDetails(projectId: string) {
             return { success: false, error: 'Not authenticated' };
         }
 
+        // Use lean() to get plain objects, then manually serialize
         const project = await ProjectModel.findById(projectId)
             .populate('teamMembers', 'name email avatar')
             .populate('mentorId', 'name email avatar')
-            .populate('createdBy', 'name email');
+            .populate('createdBy', 'name email avatar')
+            .lean();
 
         if (!project) {
             return { success: false, error: 'Project not found' };
         }
 
-        return { success: true, project };
+        const plainProject = {
+            ...project,
+            _id: project._id.toString(),
+            teamMembers: project.teamMembers?.map((m: any) => ({
+                _id: m._id.toString(),
+                name: m.name,
+                email: m.email,
+                avatar: m.avatar
+            })) || [],
+            mentorId: project.mentorId ? {
+                _id: (project.mentorId as any)._id.toString(),
+                name: (project.mentorId as any).name,
+                email: (project.mentorId as any).email,
+                avatar: (project.mentorId as any).avatar
+            } : null,
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                email: (project.createdBy as any).email,
+                avatar: (project.createdBy as any).avatar
+            } : (project.createdBy as any)?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
+        };
+
+        return { success: true, project: plainProject };
 
     } catch (error: any) {
         console.error('Error fetching project details:', error);
@@ -334,6 +417,67 @@ export async function searchUsers(query: string) {
 
     } catch (error: any) {
         console.error('Error searching users:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateProjectStatus(projectId: string, status: 'planning' | 'active' | 'completed' | 'paused' | 'archived') {
+    try {
+        await dbConnect();
+        const currentUser = await getCurrentUser();
+
+        if (!currentUser) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        const project = await ProjectModel.findByIdAndUpdate(
+            projectId,
+            { status },
+            { new: true }
+        )
+            .populate('teamMembers', 'name email avatar')
+            .populate('mentorId', 'name email avatar')
+            .populate('createdBy', 'name email avatar')
+            .lean();
+
+        if (!project) {
+            return { success: false, error: 'Project not found' };
+        }
+
+        const plainProject = {
+            ...project,
+            _id: project._id.toString(),
+            teamMembers: project.teamMembers?.map((m: any) => ({
+                _id: m._id.toString(),
+                name: m.name,
+                email: m.email,
+                avatar: m.avatar
+            })) || [],
+            mentorId: project.mentorId ? {
+                _id: (project.mentorId as any)._id.toString(),
+                name: (project.mentorId as any).name,
+                email: (project.mentorId as any).email,
+                avatar: (project.mentorId as any).avatar
+            } : null,
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                email: (project.createdBy as any).email,
+                avatar: (project.createdBy as any).avatar
+            } : (project.createdBy as any)?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
+        };
+
+        revalidatePath('/projects');
+        revalidatePath(`/projects/${projectId}`);
+
+        return { success: true, project: plainProject };
+    } catch (error: any) {
+        console.error('Error updating project status:', error);
         return { success: false, error: error.message };
     }
 }

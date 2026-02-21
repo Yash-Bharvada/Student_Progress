@@ -5,6 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Github, Loader2, X, ExternalLink, Star } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { updateProjectGithubUrl, syncProjectProgress, addTeamMember, removeTeamMember, searchUsers } from "@/app/projects/actions"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 interface TeamMember {
     _id: string
@@ -17,16 +24,16 @@ interface Project {
     _id: string
     name: string
     description: string
-    status: 'planning' | 'active' | 'completed' | 'paused'
+    status: 'planning' | 'active' | 'completed' | 'paused' | 'archived'
     startDate: string
     endDate: string
-    progress: number
+    progress?: number
     techStack: string[]
     teamMembers: TeamMember[]
     githubRepos: string[]
     githubUrl?: string
     liveUrl?: string
-    lastSynced?: string
+    lastSynced?: string | null
     updatedAt: string
 }
 
@@ -216,14 +223,44 @@ export function ProjectDetailDialog({
                             <h2 className="text-2xl font-bold tracking-tight">{project.name}</h2>
                             <p className="text-sm text-muted-foreground">{project.description}</p>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onClose}
-                            className="h-8 w-8 text-muted-foreground md:hidden"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {!isMentor && (
+                                <Select
+                                    value={project.status}
+                                    onValueChange={async (value) => {
+                                        try {
+                                            const { updateProjectStatus } = await import('@/app/projects/actions');
+                                            const result = await updateProjectStatus(project._id, value as any);
+                                            if (result.success && result.project) {
+                                                onUpdate(result.project);
+                                            } else {
+                                                alert(result.error);
+                                            }
+                                        } catch (error) {
+                                            console.error('Failed to update status', error);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="planning">Planning</SelectItem>
+                                        <SelectItem value="active">Active</SelectItem>
+                                        <SelectItem value="completed">Completed</SelectItem>
+                                        <SelectItem value="paused">Paused</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                className="h-8 w-8 text-muted-foreground md:hidden"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Links Integration */}
@@ -359,8 +396,8 @@ export function ProjectDetailDialog({
 
                             {/* Current Members */}
                             <div className="space-y-2">
-                                {project.teamMembers?.map((member) => (
-                                    <div key={member._id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+                                {project.teamMembers?.map((member, index) => (
+                                    <div key={`${member._id}-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-10 w-10">
                                                 <AvatarImage src={member.avatar} />

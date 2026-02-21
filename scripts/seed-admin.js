@@ -2,8 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // Load env vars
-// Note: In a standalone script, we might need dotenv if not running via next/scripts
-require('dotenv').config({ path: '.env.local' });
+const path = require('path');
+// Load env vars from the project root .env.local file
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
 const MONGODB_URI = process.env.MONGODB_URI;
 

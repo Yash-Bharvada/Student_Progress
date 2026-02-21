@@ -19,6 +19,9 @@ import {
   LogOut,
   Zap,
   PanelLeft,
+  MessageSquare,
+  Megaphone,
+  Mail,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -71,11 +74,6 @@ const navigation = [
     roles: ["mentor", "admin"], // Only visible to mentors and admins
   },
   {
-    name: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-  {
     name: "AI Feedback",
     href: "/ai-feedback",
     icon: Sparkles,
@@ -92,6 +90,37 @@ const navigation = [
     icon: Shield,
     badge: "Admin",
     roles: ["admin"], // Only visible to admins
+  },
+  {
+    name: "Mentors",
+    href: "/admin/mentors",
+    icon: Users,
+    roles: ["admin"],
+  },
+  {
+    name: "Chat with Mentor",
+    href: "/students/chat",
+    icon: MessageSquare,
+    roles: ["student"],
+  },
+  {
+    name: "Query Section",
+    href: "/mentor/queries",
+    icon: MessageSquare,
+    roles: ["mentor"],
+  },
+  {
+    name: "Announcements",
+    href: "/mentor/announcements",
+    icon: Megaphone,
+    roles: ["mentor"],
+  },
+  {
+    name: "Test Mailer",
+    href: "/mentor/test-mailer",
+    icon: Mail,
+    roles: ["mentor"],
+    badge: "New",
   },
   {
     name: "Settings",
@@ -120,6 +149,10 @@ export function AppSidebar() {
     }
 
     fetchUser()
+
+    // Poll for unread messages every 30 seconds
+    const interval = setInterval(fetchUser, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -154,14 +187,14 @@ export function AppSidebar() {
               <SidebarMenu className="space-y-1">
                 {navigation
                   .filter((item: any) => {
-                    // Admin specific filtering: Remove everything except Admin and Settings
+                    // Admin specific filtering: Remove everything except Admin, Settings, and Mentors
                     if (user?.role === 'admin') {
-                      return ['Admin', 'Settings'].includes(item.name);
+                      return ['Admin', 'Mentors', 'Settings'].includes(item.name);
                     }
 
                     // Mentor specific filtering
                     if (user?.role === 'mentor') {
-                      const mentorTabs = ['Dashboard', 'Projects', 'Students', 'Settings'];
+                      const mentorTabs = ['Dashboard', 'Projects', 'Students', 'Query Section', 'Announcements', 'Test Mailer', 'Settings'];
                       return mentorTabs.includes(item.name);
                     }
 
@@ -204,6 +237,12 @@ export function AppSidebar() {
                                   >
                                     {item.badge}
                                   </Badge>
+                                )}
+                                {user?.hasUnreadMessages && (item.name === "Chat with Mentor" || item.name === "Query Section") && (
+                                  <span className="relative flex h-2.5 w-2.5 ml-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                                  </span>
                                 )}
                               </>
                             )}
@@ -290,7 +329,7 @@ export function TopBar() {
   const pathname = usePathname()
   const { toggleSidebar } = useSidebar()
   // Hide search on dashboard and analytics pages as requested
-  const showSearch = !['/dashboard', '/analytics'].includes(pathname)
+  const showSearch = !['/dashboard'].includes(pathname)
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-xl px-6">

@@ -15,6 +15,7 @@ export interface IProject {
     liveUrl?: string; // Live demo URL
     progress?: number; // 0-100, calculated from GitHub commits
     lastSynced?: Date; // Last time progress was synced from GitHub
+    deadlineWarningSent?: boolean; // True if the 1-2 day warning was sent
     createdBy: Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
@@ -39,6 +40,7 @@ const ProjectSchema = new Schema<IProject>({
     liveUrl: { type: String }, // Live demo URL
     progress: { type: Number, min: 0, max: 100, default: 0 }, // Progress percentage
     lastSynced: { type: Date }, // Last GitHub sync timestamp
+    deadlineWarningSent: { type: Boolean, default: false }, // Deadline notification flag
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 }, {
     timestamps: true,

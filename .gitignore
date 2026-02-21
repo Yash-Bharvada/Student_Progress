@@ -134,3 +134,14 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Project-specific: build logs and temp files
+build_log*.txt
+build_Final*.txt
+tsc-errors.log
+tmp/
+
+# Presentation / draft files (not part of source code)
+*.pptx
+*.pdf
+Techathon_Presentation_Content.md

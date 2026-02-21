@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         const projects = await ProjectModel.find(query)
             .populate('teamMembers', 'name avatar email')
             .populate('mentorId', 'name')
+            .populate('createdBy', 'name avatar email')
             .sort({ updatedAt: -1 })
             .lean(); // Get plain objects instead of Mongoose documents
 
@@ -46,7 +47,17 @@ export async function GET(request: NextRequest) {
                 email: member.email
             })) || [],
             mentorId: project.mentorId?._id ? project.mentorId._id.toString() : project.mentorId?.toString() || null,
-            createdBy: project.createdBy.toString()
+            createdBy: project.createdBy ? {
+                _id: (project.createdBy as any)._id.toString(),
+                name: (project.createdBy as any).name,
+                avatar: (project.createdBy as any).avatar,
+                email: (project.createdBy as any).email
+            } : project.createdBy?.toString() || null,
+            startDate: project.startDate?.toISOString(),
+            endDate: project.endDate?.toISOString(),
+            createdAt: project.createdAt?.toISOString(),
+            updatedAt: project.updatedAt?.toISOString(),
+            lastSynced: project.lastSynced?.toISOString() || null
         }));
 
         return NextResponse.json({ success: true, projects: plainProjects });
@@ -72,13 +83,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
-        let mentorId = null;
+        let mentorId = body.mentorId || null;
 
         if (user.role === 'student') {
-            if (!user.mentorId) {
-                return NextResponse.json({ success: false, error: 'You must be enrolled by a mentor to create a project.' }, { status: 403 });
+            if (!mentorId) {
+                return NextResponse.json({ success: false, error: 'Please select a mentor for this project.' }, { status: 400 });
             }
-            mentorId = user.mentorId;
         } else if (user.role === 'mentor') {
             // If mentor creates, they must assign to a student? Or just create for themselves? 
             // The prompt says "Student (creates for self) or Mentor". 

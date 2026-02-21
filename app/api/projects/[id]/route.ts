@@ -51,6 +51,10 @@ export async function PATCH(
             { new: true }
         ).populate('teamMembers', 'name avatar email'); // Populate for immediate UI update
 
+        if (!updatedProject) {
+            return NextResponse.json({ success: false, error: 'Project not found after update' }, { status: 404 });
+        }
+
         return NextResponse.json({
             success: true,
             project: {

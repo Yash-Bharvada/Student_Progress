@@ -4,14 +4,15 @@ import dbConnect from '@/lib/mongodb';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
+        const { username } = await context.params;
         await dbConnect();
 
         // Find user by username (case-insensitive)
         const user = await UserModel.findOne({
-            username: { $regex: new RegExp(`^${params.username}$`, 'i') }
+            username: { $regex: new RegExp(`^${username}$`, 'i') }
         }).select('name username bio avatar role course skills settings email createdAt githubId');
 
         if (!user) {

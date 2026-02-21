@@ -5,12 +5,13 @@ import { UserModel } from '@/lib/models/User';
 import dbConnect from '@/lib/mongodb';
 
 interface Params {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+    const { id } = await params;
     try {
         await dbConnect();
         const user = await getCurrentUser();
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest, { params }: Params) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const project = await ProjectModel.findById(params.id);
+        const project = await ProjectModel.findById(id);
         if (!project) {
             return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
         }
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+    const { id } = await params;
     try {
         await dbConnect();
         const user = await getCurrentUser();
@@ -80,7 +82,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
         const { memberId } = await request.json(); // Pass memberId in body to remove
 
-        const project = await ProjectModel.findById(params.id);
+        const project = await ProjectModel.findById(id);
         if (!project) {
             return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
         }

@@ -35,7 +35,6 @@ const sampleEndpoints = [
   { method: "GET", path: "/api/user", description: "Get authenticated user info" },
   { method: "GET", path: "/api/repositories", description: "Get all repositories" },
   { method: "GET", path: "/api/dashboard", description: "Get dashboard data" },
-  { method: "GET", path: "/api/analytics", description: "Get analytics data" },
   { method: "GET", path: "/api/auth/check", description: "Check authentication status" },
   { method: "POST", path: "/api/ai/analyze", description: "Analyze code quality" },
 ]

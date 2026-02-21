@@ -4,6 +4,8 @@ import dbConnect from "@/lib/mongodb";
 import { UserModel, IUser } from "@/lib/models/User";
 import { revalidatePath } from "next/cache";
 
+import { getCurrentUser } from "@/lib/auth";
+
 // Type for the student data used in the UI
 export interface StudentData {
     id: string;
@@ -25,7 +27,26 @@ export async function getStudents(): Promise<StudentData[]> {
     await dbConnect();
 
     try {
-        const students = await UserModel.find({ role: 'student' }).sort({ createdAt: -1 });
+        const currentUser = await getCurrentUser();
+        let query: any = { role: 'student' };
+
+        if (currentUser?.role === 'mentor') {
+            const ProjectModel = await import('@/lib/models/Project').then(m => m.ProjectModel);
+            const mentorProjects = await ProjectModel.find({ mentorId: currentUser._id }).select('teamMembers');
+
+            // Extract all student IDs from the mentor's projects
+            const studentIds = mentorProjects.flatMap(p => p.teamMembers);
+
+            // Fetch students that are either in the mentor's projects OR explicitly assigned to the mentor in their profile
+            query = {
+                $and: [
+                    { role: 'student' },
+                    { $or: [{ _id: { $in: studentIds } }, { mentorId: currentUser._id }] }
+                ]
+            };
+        }
+
+        const students = await UserModel.find(query).sort({ createdAt: -1 });
 
         // Fetch projects for these students
         // We need to find projects where teamMembers include the student's ID

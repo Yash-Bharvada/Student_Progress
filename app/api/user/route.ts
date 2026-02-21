@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import Message from '@/lib/models/Message';
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,6 +13,11 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const hasUnreadMessages = await Message.exists({
+            receiver: user._id,
+            isRead: false
+        });
+
         return NextResponse.json({
             success: true,
             user: {
@@ -23,7 +29,9 @@ export async function GET(request: NextRequest) {
                 role: user.role,
                 course: user.course,
                 bio: user.bio,
-                skills: user.skills
+                skills: user.skills,
+                mentorId: user.mentorId,
+                hasUnreadMessages: !!hasUnreadMessages
             }
         });
     } catch (error) {

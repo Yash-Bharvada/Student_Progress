@@ -159,3 +159,75 @@ export async function generateCodeSummary(code: string, language: string): Promi
         throw error;
     }
 }
+
+export async function generateProjectReport(projectData: any, githubDetails: any = null): Promise<string> {
+    try {
+        if (!GROQ_API_KEY) {
+            throw new Error('GROQ_API_KEY is not configured');
+        }
+
+        const prompt = `Act as an academic reviewer and senior technical lead. Generate a comprehensive project report for the software engineering project described below. 
+The report MUST be formatted in standard Markdown but adhere strictly to the IEEE academic paper structure. Ensure the Markdown is visually stunning and highly readable, perfectly suited for a presentation or professional document.
+
+You MUST heavily utilize these Markdown features to make the report appealing:
+- **Bold** key terms and technologies.
+- Use > Blockquotes for important highlights or summary statements.
+- Create Markdown Tables to structure structured data like the Tech Stack or Project Specs.
+- Use horizontal rules (---) to separate major sections.
+- Use appropriate heading levels (##, ###) for clear hierarchy.
+
+Use the following data as the source of truth for your report:
+--- PROJECT DATA ---
+Name: ${projectData.name}
+Description: ${projectData.description}
+Status: ${projectData.status}
+Progress: ${projectData.progress}%
+Start Date: ${projectData.startDate}
+End Date: ${projectData.endDate}
+
+Objectives:
+${projectData.objectives?.map((o: string) => "- " + o).join('\n') || "Not specified."}
+
+Tech Stack:
+${projectData.techStack?.map((t: string) => "- " + t).join('\n') || "Not specified."}
+
+--- GITHUB ANALYSIS (If available) ---
+${githubDetails ? JSON.stringify(githubDetails, null, 2) : "No GitHub analysis provided."}
+
+--- REQUIRED IEEE SECTIONS ---
+1. Title and Abstract
+2. I. Introduction (Background and Objectives)
+3. II. System Architecture & Methodology (Tech Stack utilization)
+4. III. Implementation & Progress Analysis (Current status, GitHub commit cadence if available)
+5. IV. Conclusion and Future Work
+6. References (If applicable, simply list the GitHub repository URL)
+
+Ensure the language is highly professional, academic, and analytical. Do not wrap the entire response in a markdown code block (\`\`\`). Simply return the Markdown text itself.`;
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert academic software reviewer writing technical project reports in strictly structured IEEE Professional format. DO NOT include any conversational filler, opening remarks, or <think> processes. Return ONLY the final, beautifully formatted Markdown.",
+                },
+                {
+                    role: "user",
+                    content: prompt,
+                }
+            ],
+            model: GROQ_MODEL,
+            temperature: 0.5,
+            max_tokens: 3000,
+        });
+
+        let content = chatCompletion.choices[0]?.message?.content || "# AI Report Generation Failed";
+
+        // Manually strip <think>...</think> tags which some Groq models dynamically inject
+        content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+        return content;
+    } catch (error: any) {
+        console.error('Error generating Project Report with Groq:', error);
+        throw error;
+    }
+}

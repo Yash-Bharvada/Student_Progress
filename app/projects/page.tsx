@@ -12,6 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {
     FolderGit2,
     Plus,
     Loader2,
@@ -21,6 +28,7 @@ import {
     X,
     ExternalLink,
     Star,
+    Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ProjectDetailDialog } from "@/components/project-detail-dialog"
@@ -36,17 +44,24 @@ interface Project {
     _id: string
     name: string
     description: string
-    status: 'planning' | 'active' | 'completed' | 'paused'
+    status: 'planning' | 'active' | 'completed' | 'paused' | 'archived'
     startDate: string
     endDate: string
-    progress: number // Derived or stored? Model doesn't have it, we might need to calculate or mock for now
+    progress?: number // Derived or stored? Model doesn't have it, we might need to calculate or mock for now
     techStack: string[]
     teamMembers: TeamMember[]
     githubRepos: string[]
     githubUrl?: string // Primary GitHub repository URL
-    lastSynced?: string // Last GitHub sync timestamp
+    lastSynced?: string | null // Last GitHub sync timestamp
     updatedAt: string
     liveUrl?: string
+    mentorId?: string | null
+    createdBy?: {
+        _id: string
+        name: string
+        avatar: string
+        email: string
+    } | string
 }
 
 interface Review {
@@ -72,6 +87,7 @@ export default function ProjectsPage() {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null)
     const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
     const [isMentor, setIsMentor] = useState(false)
+    const [mentors, setMentors] = useState<TeamMember[]>([])
 
     // Form state
     const [formData, setFormData] = useState({
@@ -80,7 +96,8 @@ export default function ProjectsPage() {
         startDate: '',
         endDate: '',
         techStack: '',
-        githubUrl: ''
+        githubUrl: '',
+        mentorId: ''
     })
 
     useEffect(() => {
@@ -109,6 +126,13 @@ export default function ProjectsPage() {
                 const data = await res.json()
                 if (data.success) {
                     setProjects(data.projects)
+                }
+
+                // Fetch Mentors for the dropdown
+                const mentorsRes = await fetch('/api/mentors')
+                const mentorsData = await mentorsRes.json()
+                if (mentorsData.success) {
+                    setMentors(mentorsData.mentors)
                 }
             } catch (error) {
                 console.error('Error loading projects', error)
@@ -146,7 +170,7 @@ export default function ProjectsPage() {
             if (data.success) {
                 setProjects([data.project, ...projects])
                 setIsDialogOpen(false)
-                setFormData({ name: '', description: '', startDate: '', endDate: '', techStack: '', githubUrl: '' })
+                setFormData({ name: '', description: '', startDate: '', endDate: '', techStack: '', githubUrl: '', mentorId: '' })
             } else {
                 alert(data.error)
             }
@@ -282,6 +306,23 @@ export default function ProjectsPage() {
                                                 ))}
                                             </div>
 
+                                            {project.createdBy && typeof project.createdBy !== 'string' && (
+                                                <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+                                                    <span className="shrink-0">Created by:</span>
+                                                    <div className="flex items-center gap-1.5 bg-secondary/30 px-2 py-1 rounded-full">
+                                                        <Avatar className="h-4 w-4">
+                                                            <AvatarImage src={project.createdBy.avatar} />
+                                                            <AvatarFallback className="text-[8px]">
+                                                                {project.createdBy.name?.charAt(0)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="font-medium text-foreground/80 truncate max-w-[100px]">
+                                                            {project.createdBy.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="space-y-1 mb-4">
                                                 <div className="flex justify-between text-xs">
                                                     <span className="text-muted-foreground">Progress</span>
@@ -309,7 +350,7 @@ export default function ProjectsPage() {
                                                             <span className="hidden sm:inline">Live</span>
                                                         </div>
                                                     )}
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1" title="Linked GitHub Repositories">
                                                         <Github className="h-3.5 w-3.5" />
                                                         {project.githubRepos?.length || 0}
                                                     </div>
@@ -319,6 +360,23 @@ export default function ProjectsPage() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {isMentor && (
+                                                <div className="mt-5 pt-3 border-t border-border/40">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="w-full bg-blue-500/5 text-blue-500 hover:bg-blue-500/10 hover:text-blue-600 border-blue-500/20"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            router.push(`/projects/${project._id}/report`)
+                                                        }}
+                                                    >
+                                                        <Sparkles className="w-3.5 h-3.5 mr-2" />
+                                                        Generate AI Report
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -387,6 +445,27 @@ export default function ProjectsPage() {
                                             placeholder="https://github.com/username/repo"
                                         />
                                     </div>
+                                    {!isMentor && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mentorId">Select Mentor</Label>
+                                            <Select
+                                                value={formData.mentorId}
+                                                onValueChange={(value) => setFormData({ ...formData, mentorId: value })}
+                                                required
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Choose a mentor for this project" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {mentors.map((mentor) => (
+                                                        <SelectItem key={mentor._id} value={mentor._id}>
+                                                            {mentor.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="startDate">Start Date</Label>
@@ -446,6 +525,9 @@ export default function ProjectsPage() {
                             setProjects(projects.map(p =>
                                 p._id === updatedProject._id ? updatedProject : p
                             ))
+                            if (selectedProject && selectedProject._id === updatedProject._id) {
+                                setSelectedProject(updatedProject)
+                            }
                         }}
                     />
                 )}

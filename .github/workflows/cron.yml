@@ -1,0 +1,16 @@
+name: Daily Deadline Checker
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  check-deadlines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deadline Check Endpoint
+        run: |
+          curl -H "Content-Type: application/json" -X GET ${{ secrets.PRODUCTION_URL }}/api/cron/check-deadlines

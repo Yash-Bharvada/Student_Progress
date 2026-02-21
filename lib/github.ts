@@ -54,9 +54,11 @@ export async function getUserRepositories(username: string, accessToken?: string
         });
 
         return repos.map((repo) => ({
+            id: repo.id,
             name: repo.name,
             fullName: repo.full_name,
             isPrivate: repo.private,
+            htmlUrl: repo.html_url,
             language: repo.language || 'Unknown',
             stars: repo.stargazers_count,
             forks: repo.forks_count,
@@ -378,5 +380,32 @@ export async function getAppInstallations() {
     } catch (error) {
         console.error('Error fetching installations:', error);
         throw error;
+    }
+}
+
+// Analyze a repository by fetching its commit history and basic stats for AI analysis
+export async function analyzeRepository(url: string, accessToken?: string) {
+    try {
+        const { owner, repo } = parseGitHubUrl(url);
+
+        // Fetch recent commits (up to 20 for context)
+        const rawCommits = await getCommitHistory(owner, repo, undefined, accessToken);
+
+        // Summarize commits
+        const recentCommits = rawCommits.slice(0, 20).map(c => ({
+            message: c.message,
+            date: c.timestamp,
+            author: c.author.name
+        }));
+
+        return {
+            owner,
+            repo,
+            totalCommitsChecked: rawCommits.length,
+            recentCommits
+        };
+    } catch (error) {
+        console.warn(`Could not deeply analyze repo ${url}:`, error);
+        return null;
     }
 }

@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils"
 interface Repository {
     id: number
     name: string
-    full_name: string
+    fullName: string
     description: string | null
     language: string | null
-    stargazers_count: number
-    forks_count: number
-    updated_at: string
-    html_url: string
-    private: boolean
+    stars: number
+    forks: number
+    lastUpdated: string
+    htmlUrl: string
+    isPrivate: boolean
 }
 
 export default function RepositoriesPage() {
@@ -186,7 +186,7 @@ export default function RepositoriesPage() {
                                     .filter(repo => repo && repo.name)
                                     .map((repo) => (
                                         <div
-                                            key={repo.name}
+                                            key={repo.htmlUrl}
                                             className="group relative overflow-hidden rounded-xl border border-border/50 bg-card p-5 hover:shadow-lg hover:border-border transition-all"
                                         >
                                             <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -201,14 +201,14 @@ export default function RepositoriesPage() {
                                                                 {repo.name}
                                                             </h3>
                                                         </div>
-                                                        {repo.private && (
+                                                        {repo.isPrivate && (
                                                             <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">
                                                                 Private
                                                             </Badge>
                                                         )}
                                                     </div>
                                                     <a
-                                                        href={repo.html_url}
+                                                        href={repo.htmlUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -238,16 +238,16 @@ export default function RepositoriesPage() {
                                                         )}
                                                         <div className="flex items-center gap-1 text-muted-foreground">
                                                             <Star className="h-3 w-3" />
-                                                            <span>{repo.stargazers_count}</span>
+                                                            <span>{repo.stars}</span>
                                                         </div>
                                                         <div className="flex items-center gap-1 text-muted-foreground">
                                                             <GitFork className="h-3 w-3" />
-                                                            <span>{repo.forks_count}</span>
+                                                            <span>{repo.forks}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-1 text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        <span>{new Date(repo.updated_at).toLocaleDateString()}</span>
+                                                        <span>{new Date(repo.lastUpdated).toLocaleDateString()}</span>
                                                     </div>
                                                 </div>
                                             </div>

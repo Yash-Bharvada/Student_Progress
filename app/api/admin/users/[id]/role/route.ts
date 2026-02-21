@@ -6,8 +6,9 @@ import { UserModel } from '@/lib/models/User';
 // PUT /api/admin/users/[id]/role - Update user role (admin only)
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const cookieStore = await cookies();
         const installationId = cookieStore.get('student_installation_id');
@@ -37,7 +38,7 @@ export async function PUT(
         }
 
         const user = await UserModel.findByIdAndUpdate(
-            params.id,
+            id,
             { role },
             { new: true }
         );

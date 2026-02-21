@@ -45,11 +45,22 @@ export async function PATCH(request: NextRequest) {
 
         await dbConnect();
 
-        // Mark all as read
-        await NotificationModel.updateMany(
-            { userId: user._id, read: false },
-            { $set: { read: true } }
-        );
+        const body = await request.json().catch(() => ({}));
+        const { notificationId } = body;
+
+        if (notificationId) {
+            // Mark single notification as read
+            await NotificationModel.updateOne(
+                { _id: notificationId, userId: user._id },
+                { $set: { read: true } }
+            );
+        } else {
+            // Mark all as read
+            await NotificationModel.updateMany(
+                { userId: user._id, read: false },
+                { $set: { read: true } }
+            );
+        }
 
         return NextResponse.json({ success: true });
 
